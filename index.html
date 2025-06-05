@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>91ClubAce</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #121212; color: white; margin: 0; padding: 0; }
+    header, footer { background: #1f1f1f; padding: 15px; text-align: center; }
+    .container { padding: 20px; }
+    .card { background: #1e1e1e; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
+    input, button { padding: 10px; border-radius: 5px; margin: 5px 0; border: none; }
+    button { background: #00b894; color: white; cursor: pointer; }
+    button:hover { background: #019875; }
+  </style>
+</head>
+<body>
+  <header>
+    <h2>91ClubAce</h2>
+  </header>
+
+  <div class="container" id="main">
+    <div class="card" id="auth">
+      <h3>Login</h3>
+      <input type="text" id="username" placeholder="Username"><br>
+      <input type="password" id="password" placeholder="Password"><br>
+      <button onclick="login()">Login</button>
+      <p>or <a href="#" onclick="showRegister()">Register</a></p>
+    </div>
+
+    <div class="card" id="dashboard" style="display:none">
+      <h3>Welcome, <span id="userDisplay"></span></h3>
+      <p>Wallet Balance: ₹<span id="balance">0</span></p>
+      <div class="card">
+        <h4>Deposit</h4>
+        <p>Send UPI to: <b id="upi">admin@upi</b></p>
+      </div>
+      <div class="card">
+        <h4>Withdraw Request</h4>
+        <input type="number" id="withdrawAmt" placeholder="Amount"><br>
+        <button onclick="requestWithdraw()">Request Withdraw</button>
+      </div>
+      <button onclick="logout()">Logout</button>
+    </div>
+
+    <div class="card" id="adminPanel" style="display:none">
+      <h3>Admin Panel</h3>
+      <input type="text" id="newUPI" placeholder="New UPI ID">
+      <button onclick="updateUPI()">Update UPI ID</button>
+
+      <h4>Pending Withdrawals</h4>
+      <ul id="withdrawList"></ul>
+
+      <h4>Users</h4>
+      <ul id="userList"></ul>
+
+      <button onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <footer>
+    <p>&copy; 2025 91ClubAce</p>
+  </footer>
+
+  <script>
+    let currentUser = null;
+    let users = JSON.parse(localStorage.getItem('users') || '{}');
+    let withdraws = JSON.parse(localStorage.getItem('withdraws') || '[]');
+    let upiID = localStorage.getItem('upi') || 'admin@upi';
+
+    document.getElementById('upi').innerText = upiID;
+
+    function save() {
+      localStorage.setItem('users', JSON.stringify(users));
+      localStorage.setItem('withdraws', JSON.stringify(withdraws));
+      localStorage.setItem('upi', upiID);
+    }
+
+    function login() {
+      let u = username.value.trim();
+      let p = password.value.trim();
+      if (u === 'admin' && p === 'admin123') {
+        currentUser = 'admin';
+        showAdmin();
+        return;
+      }
+      if (users[u] && users[u].password === p) {
+        currentUser = u;
+        showDashboard();
+      } else {
+        alert('Invalid credentials');
+      }
+    }
+
+    function showRegister() {
+      let u = prompt('Choose username');
+      let p = prompt('Choose password');
+      if (u && p && !users[u]) {
+        users[u] = { password: p, balance: 0 };
+        save();
+        alert('Registered successfully!');
+      } else {
+        alert('Username exists or invalid');
+      }
+    }
+
+    function showDashboard() {
+      auth.style.display = 'none';
+      dashboard.style.display = 'block';
+      userDisplay.innerText = currentUser;
+      balance.innerText = users[currentUser].balance;
+      document.getElementById('upi').innerText = upiID;
+    }
+
+    function requestWithdraw() {
+      let amt = parseInt(document.getElementById('withdrawAmt').value);
+      if (!amt || amt < 1) return alert('Invalid amount');
+      withdraws.push({ user: currentUser, amount: amt });
+      save();
+      alert('Withdraw requested!');
+    }
+
+    function showAdmin() {
+      auth.style.display = 'none';
+      adminPanel.style.display = 'block';
+      withdrawList.innerHTML = '';
+      withdraws.forEach((w, i) => {
+        let li = document.createElement('li');
+        li.innerText = `${w.user}: ₹${w.amount}`;
+        li.innerHTML += ` <button onclick="approveWithdraw(${i})">Approve</button>`;
+        withdrawList.appendChild(li);
+      });
+      userList.innerHTML = '';
+      for (let u in users) {
+        let li = document.createElement('li');
+        li.innerHTML = `${u}: ₹${users[u].balance} <button onclick="addBalance('${u}')">+₹100</button>`;
+        userList.appendChild(li);
+      }
+    }
+
+    function approveWithdraw(index) {
+      let w = withdraws.splice(index, 1)[0];
+      alert(`Withdraw of ₹${w.amount} approved for ${w.user}`);
+      save();
+      showAdmin();
+    }
+
+    function addBalance(user) {
+      users[user].balance += 100;
+      save();
+      showAdmin();
+    }
+
+    function updateUPI() {
+      upiID = document.getElementById('newUPI').value;
+      save();
+      alert('UPI ID updated!');
+      document.getElementById('upi').innerText = upiID;
+    }
+
+    function logout() {
+      location.reload();
+    }
+  </script>
+</body>
+</html>
